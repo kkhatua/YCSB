@@ -56,6 +56,12 @@ class StatusThread extends Thread
   /** The interval for reporting status. */
   private long _sleeptimeNs;
 
+  /** Check if Est Time to Completion is needed **/
+  private static boolean _showEstRemainingTime;
+
+  /** Summary for future extraction **/
+  static String measurementSummary;
+  
   /**
    * Creates a new StatusThread.
    *
@@ -73,6 +79,8 @@ class StatusThread extends Thread
     _label=label;
     _standardstatus=standardstatus;
     _sleeptimeNs=TimeUnit.SECONDS.toNanos(statusIntervalSeconds);
+    //Show ETC
+    _showEstRemainingTime = ClientThread.showETCStatus();
   }
 
   /**
@@ -146,11 +154,12 @@ class StatusThread extends Thread
     if (totalops != 0) {
       msg.append(d.format(curthroughput)).append(" current ops/sec; ");
     }
-    if (todoops != 0) {
-      msg.append("est completion in ").append(RemainingFormatter.format(estremaining));
-    }
 
     msg.append(Measurements.getMeasurements().getSummary());
+    
+    if ( _showEstRemainingTime && todoops != 0) {
+	      msg.append("ETC: ").append(RemainingFormatter.format(estremaining));
+	    }
 
     System.err.println(msg);
 
@@ -248,6 +257,9 @@ class ClientThread extends Thread
   long _targetOpsTickNs;
   final Measurements _measurements;
 
+  //Status of ETC display
+  private static boolean _etcStatus = false;
+  
   /**
    * Constructor.
    *
@@ -274,6 +286,12 @@ class ClientThread extends Thread
     _measurements = Measurements.getMeasurements();
     _spinSleep = Boolean.valueOf(_props.getProperty("spin.sleep", "false"));
     _completeLatch=completeLatch;
+    //Display ETC
+    _etcStatus = Boolean.valueOf(_props.getProperty("status.etc", "false"));
+  }
+
+  public static boolean showETCStatus() {
+	return _etcStatus;
   }
 
   public int getOpsDone()
@@ -772,7 +790,7 @@ public class Client
       targetperthreadperms=targetperthread/1000.0;
     }
 
-    System.out.println("YCSB Client 0.1");
+    System.out.println("YCSB Client 0.8.0");
     System.out.print("Command line:");
     for (int i=0; i<args.length; i++)
     {
