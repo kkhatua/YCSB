@@ -21,7 +21,7 @@ LICENSE file.
 
   <groupId>com.yahoo.ycsb</groupId>
   <artifactId>root</artifactId>
-  <version>0.8.0-SNAPSHOT</version>
+  <version>0.8.0-mapr</version>
   <packaging>pom</packaging>
 
   <name>YCSB Root</name>
@@ -68,9 +68,12 @@ LICENSE file.
   <properties>
     <maven.assembly.version>2.5.5</maven.assembly.version>
     <maven.dependency.version>2.10</maven.dependency.version>
-    <hbase094.version>0.94.27</hbase094.version>
-    <hbase098.version>0.98.14-hadoop2</hbase098.version>
-    <hbase10.version>1.0.2</hbase10.version>
+    <!-- hbase094.version>0.94.27</hbase094.version -->
+    <hbase094.version>0.94.24-mapr-1602-SNAPSHOT</hbase094.version>
+    <!-- hbase098.version>0.98.14-hadoop2</hbase098.version -->
+    <hbase098.version>0.98.12-mapr-1506-SNAPSHOT</hbase098.version>
+    <!-- hbase10.version>1.0.2</hbase10.version -->
+    <hbase10.version>1.1.1-mapr-1602-SNAPSHOT</hbase10.version>
     <accumulo.version>1.6.0</accumulo.version>
     <cassandra.version>1.2.9</cassandra.version>
     <cassandra.cql.version>1.0.3</cassandra.cql.version>
@@ -100,7 +103,7 @@ LICENSE file.
     <module>core</module>
     <module>binding-parent</module>
     <!-- all the datastore bindings, lex sorted please -->
-    <module>accumulo</module>
+    <!--  module>accumulo</module>
     <module>aerospike</module>
     <module>cassandra</module>
     <module>cassandra2</module>
@@ -110,22 +113,22 @@ LICENSE file.
     <module>elasticsearch</module>
     <module>geode</module>
     <module>googledatastore</module>
-    <module>hbase094</module>
+    <module>hbase094</module -->
     <module>hbase098</module>
-    <module>hbase10</module>
+    <!-- >module>hbase10</module>
     <module>hypertable</module>
     <module>infinispan</module>
     <module>jdbc</module>
-    <module>kudu</module>
+    <module>kudu</module -->
     <!--<module>mapkeeper</module>-->
-    <module>memcached</module>
+    <!-- module>memcached</module>
     <module>mongodb</module>
     <module>nosqldb</module>
     <module>orientdb</module>
     <module>redis</module>
     <module>s3</module>
     <module>solr</module>
-    <module>tarantool</module>
+    <module>tarantool</module -->
     <!--<module>voldemort</module>-->
   </modules>
 
