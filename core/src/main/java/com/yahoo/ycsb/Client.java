@@ -126,7 +126,7 @@ class StatusThread extends Thread
    */
   private long computeStats(final long startTimeMs, long startIntervalMs, long endIntervalMs,
                             long lastTotalOps) {
-    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     long totalops=0;
     long todoops=0;
@@ -246,10 +246,10 @@ class ClientThread extends Thread
   DB _db;
   boolean _dotransactions;
   Workload _workload;
-  int _opcount;
+  long _opcount;
   double _targetOpsPerMs;
 
-  int _opsdone;
+  long _opsdone;
   int _threadid;
   int _threadcount;
   Object _workloadstate;
@@ -271,7 +271,7 @@ class ClientThread extends Thread
    * @param targetperthreadperms target number of operations per thread per ms
    * @param completeLatch The latch tracking the completion of all clients.
    */
-  public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, int opcount, double targetperthreadperms, CountDownLatch completeLatch)
+  public ClientThread(DB db, boolean dotransactions, Workload workload, Properties props, long opcount, double targetperthreadperms, CountDownLatch completeLatch)
   {
     _db=db;
     _dotransactions=dotransactions;
@@ -294,7 +294,7 @@ class ClientThread extends Thread
 	return _etcStatus;
   }
 
-  public int getOpsDone()
+  public long getOpsDone()
   {
     return _opsdone;
   }
@@ -418,9 +418,9 @@ class ClientThread extends Thread
   /**
    * the total amount of work this thread is still expected to do
    */
-  public int getOpsTodo()
+  public long getOpsTodo()
   {
-    int todo = _opcount - _opsdone;
+    long todo = _opcount - _opsdone;
     return todo < 0 ? 0 : todo;
   }
 }
@@ -859,20 +859,20 @@ public class Client
 
     System.err.println("Starting test.");
 
-    int opcount;
+    long opcount;
     if (dotransactions)
     {
-      opcount=Integer.parseInt(props.getProperty(OPERATION_COUNT_PROPERTY,"0"));
+      opcount=Long.parseLong(props.getProperty(OPERATION_COUNT_PROPERTY,"0"));
     }
     else
     {
       if (props.containsKey(INSERT_COUNT_PROPERTY))
       {
-        opcount=Integer.parseInt(props.getProperty(INSERT_COUNT_PROPERTY,"0"));
+        opcount=Long.parseLong(props.getProperty(INSERT_COUNT_PROPERTY,"0"));
       }
       else
       {
-        opcount=Integer.parseInt(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
+        opcount=Long.parseLong(props.getProperty(RECORD_COUNT_PROPERTY, DEFAULT_RECORD_COUNT));
       }
     }
 
@@ -892,7 +892,7 @@ public class Client
       }
 
 
-      int threadopcount = opcount/threadcount;
+      long threadopcount = opcount/threadcount;
 
       // ensure correct number of operations, in case opcount is not a multiple of threadcount
       if (threadid<opcount%threadcount)
