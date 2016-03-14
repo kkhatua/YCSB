@@ -43,6 +43,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -77,6 +78,9 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     public static final int HttpError=-2;
 
     public static final Object tableLock = new Object();
+    
+    //HBase Parameters explicitly defined by user
+    HashMap<String, String> userDefinedHBaseParams = new HashMap<String,String>();
 
     /**
      * Initialize any state for this DB.
@@ -113,6 +117,10 @@ public class HBaseClient extends com.yahoo.ycsb.DB
                 throw new DBException(e);
             }
         }
+        
+        //Scanning for explicit HBase specific flags to apply
+        setUserDefinedHBaseProperties(config);
+        
         try {
             THREAD_COUNT.getAndIncrement();
             synchronized(THREAD_COUNT) {
@@ -148,6 +156,20 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
     /**
+     * Scanning for user defined HBase properties 
+     */
+    private void setUserDefinedHBaseProperties(Configuration hBaseConfig) {
+    	Enumeration<Object> allUserKeys = getProperties().keys();
+    	while (allUserKeys.hasMoreElements()) {
+    		String userDefinedHBaseKey = (String) allUserKeys.nextElement();
+    		if (userDefinedHBaseKey.startsWith("hbase.")) {
+    			hBaseConfig.set(userDefinedHBaseKey, getProperties().getProperty(userDefinedHBaseKey));
+    			System.err.println("[HBase] Set user defined param: "+userDefinedHBaseKey+"="+getProperties().getProperty(userDefinedHBaseKey));
+    		}
+    	}
+    }
+
+	/**
      * Cleanup any state for this DB.
      * Called once per DB instance; there is one DB instance per client thread.
      */
