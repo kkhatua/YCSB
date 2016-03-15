@@ -72,6 +72,7 @@ LICENSE file.
     <hbase094.version>0.94.24-mapr-1602-SNAPSHOT</hbase094.version>
     <!-- hbase098.version>0.98.14-hadoop2</hbase098.version -->
     <hbase098.version>0.98.12-mapr-1506-SNAPSHOT</hbase098.version>
+    <maprdb.version>5.1.0-mapr-SNAPSHOT</maprdb.version>    
     <!-- hbase10.version>1.0.2</hbase10.version -->
     <hbase10.version>1.1.1-mapr-1602-SNAPSHOT</hbase10.version>
     <accumulo.version>1.6.0</accumulo.version>
@@ -96,6 +97,7 @@ LICENSE file.
     <tarantool.version>1.6.5</tarantool.version>
     <aerospike.version>3.1.2</aerospike.version>
     <solr.version>5.4.0</solr.version>
+    <ojai.version>1.1-SNAPSHOT</ojai.version>
   </properties>
 
   <modules>
@@ -115,8 +117,8 @@ LICENSE file.
     <module>googledatastore</module>
     <module>hbase094</module -->
     <module>hbase098</module>
-    <!-- >module>hbase10</module>
     <module>maprdb</module>
+    <!-- >module>hbase10</module>    
     <module>hypertable</module>
     <module>infinispan</module>
     <module>jdbc</module>
