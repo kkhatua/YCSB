@@ -386,7 +386,7 @@ public class CoreWorkload extends Workload {
     recordcount =
         Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
     if (recordcount == 0)
-      recordcount = Integer.MAX_VALUE;
+      recordcount = Long.MAX_VALUE;
     String requestdistrib =
         p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
     int maxscanlength =
@@ -668,7 +668,7 @@ public class CoreWorkload extends Workload {
       } while (keynum < 0);
     } else {
       do {
-        keynum = keychooser.nextValue().intValue();
+        keynum = keychooser.nextValue().longValue();
       } while (keynum > transactioninsertkeysequence.lastValue());
     }
     return keynum;
