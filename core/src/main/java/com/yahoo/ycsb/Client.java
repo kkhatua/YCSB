@@ -37,6 +37,9 @@ import com.yahoo.ycsb.measurements.Measurements;
 import com.yahoo.ycsb.measurements.exporter.MeasurementsExporter;
 import com.yahoo.ycsb.measurements.exporter.TextMeasurementsExporter;
 
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
+
 /**
  * A thread to periodically show the status of the experiment, to reassure you that progress is being made.
  *
@@ -841,7 +844,18 @@ public class Client
       e.printStackTrace(System.out);
       System.exit(0);
     }
-
+    
+    //Adding Handler for capturing TERM signal
+    final Workload currentWorkload = workload;
+    Signal.handle(new Signal("TERM"),
+    	      new SignalHandler() {
+    	        @Override
+    	        public void handle(Signal signal) {
+    	          currentWorkload.requestStop();
+    	        }
+    	      }
+    	    );
+    
     try
     {
       workload.init(props);
