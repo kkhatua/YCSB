@@ -246,6 +246,16 @@ public class CoreWorkload extends Workload {
   public static final String REQUEST_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
 
   /**
+   * The name of the property for the min scan length (number of records)
+   */
+  public static final String MIN_SCAN_LENGTH_PROPERTY = "minscanlength";
+
+  /**
+   * The default min scan length.
+   */
+  public static final String MIN_SCAN_LENGTH_PROPERTY_DEFAULT = "1";
+
+  /**
    * The name of the property for the max scan length (number of records)
    */
   public static final String MAX_SCAN_LENGTH_PROPERTY = "maxscanlength";
@@ -389,8 +399,10 @@ public class CoreWorkload extends Workload {
       recordcount = Long.MAX_VALUE;
     String requestdistrib =
         p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
+    int minscanlength =
+            Integer.parseInt(p.getProperty(MIN_SCAN_LENGTH_PROPERTY, MIN_SCAN_LENGTH_PROPERTY_DEFAULT));
     int maxscanlength =
-        Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
+            Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
     String scanlengthdistrib =
         p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
@@ -484,9 +496,9 @@ public class CoreWorkload extends Workload {
     fieldchooser = new UniformIntegerGenerator(0, fieldcount - 1);
 
     if (scanlengthdistrib.compareTo("uniform") == 0) {
-      scanlength = new UniformIntegerGenerator(1, maxscanlength);
+      scanlength = new UniformIntegerGenerator(minscanlength, maxscanlength);
     } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
-      scanlength = new ZipfianGenerator(1, maxscanlength);
+      scanlength = new ZipfianGenerator(minscanlength, maxscanlength);
     } else {
       throw new WorkloadException(
           "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
