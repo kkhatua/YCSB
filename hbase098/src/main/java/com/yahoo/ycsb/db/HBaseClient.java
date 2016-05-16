@@ -24,6 +24,7 @@ import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.measurements.Measurements;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.jboss.netty.util.internal.ConcurrentHashMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -77,7 +78,8 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     public static final int HttpError=-2;
 
-    public static final Object tableLock = new Object();
+    //MultiTable
+    public static final ConcurrentHashMap<String, Object> tableLockMap = new ConcurrentHashMap<String, Object>();
     
     //HBase Parameters explicitly defined by user
     HashMap<String, String> userDefinedHBaseParams = new HashMap<String,String>();
@@ -143,16 +145,19 @@ public class HBaseClient extends com.yahoo.ycsb.DB
       // Terminate right now if table does not exist, since the client
       // will not propagate this error upstream once the workload
       // starts.
+      // Hack: For multiTable, I will not check if tables exist
+      if (com.yahoo.ycsb.workloads.CoreWorkload.listOfTables.length == 1) {
       String table = com.yahoo.ycsb.workloads.CoreWorkload.table;
-      try
-	  {
+        try
+	    {
 	      HTableInterface ht = _hConn.getTable(table);
 	      ht.getTableDescriptor();
-	  }
-      catch (IOException e)
-	  {
+	    }
+        catch (IOException e)
+	    {
 	      throw new DBException(e);
-	  }
+	    }
+      }
     }
 
     /**
@@ -198,14 +203,18 @@ public class HBaseClient extends com.yahoo.ycsb.DB
 
     public void getHTable(String table) throws IOException
     {
+    	tableLockMap.putIfAbsent(table, new Object());
+    	
+    	/*OLD
         synchronized (tableLock) {
-            _hTable = _hConn.getTable(table);
-            //2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
+        */
+    	synchronized (tableLockMap.get(table)) {
+    		_hTable = _hConn.getTable(table);
+    		//2 suggestions from http://ryantwopointoh.blogspot.com/2009/01/performance-of-hbase-importing.html
             _hTable.setAutoFlush(!_clientSideBuffering, true);
             _hTable.setWriteBufferSize(_writeBufferSize);
             //return hTable;
-        }
-
+    	}
     }
 
     /**
@@ -272,6 +281,11 @@ public class HBaseClient extends com.yahoo.ycsb.DB
     }
 
   }
+  
+  	//Check if returned result is empty
+  	if (r.isEmpty())
+  		return Status.NOT_FOUND;
+  
     return Status.OK;
     }
 

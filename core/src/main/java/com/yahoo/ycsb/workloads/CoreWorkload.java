@@ -81,9 +81,31 @@ public class CoreWorkload extends Workload {
    */
   public static final String TABLENAME_PROPERTY_DEFAULT = "usertable";
 
-  public static String table;
+  public static String table;  
 
+  public String assignedTable;  
+  
+  /**
+   * The name of the property for the starting of tables
+   */
+  public static final String START_TABLE = "starttable";
+  public static final int START_TABLE_DEFAULT = -1;
 
+  /**
+   * The name of the property for the max number of tables.
+   */
+  public static final String MAX_TABLES = "maxtables";
+  public static final int MAX_TABLES_DEFAULT = 1;
+  
+  /**
+   * Map of all tables
+   */
+  public static String[] listOfTables = null;
+  
+  private static int tablecount;
+  private static int starttableid;
+ 
+  
   /**
    * The name of the property for the number of fields in a record.
    */
@@ -324,6 +346,8 @@ public class CoreWorkload extends Workload {
 
   NumberGenerator keychooser;
 
+  NumberGenerator tablechooser;
+
   NumberGenerator fieldchooser;
 
   AcknowledgedLongCounterGenerator transactioninsertkeysequence;
@@ -374,7 +398,20 @@ public class CoreWorkload extends Workload {
   @Override
   public void init(Properties p) throws WorkloadException {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
-
+    
+    //MultiTable
+    starttableid = Integer.valueOf(p.getProperty("starttable", "-1"));
+    if (starttableid != -1) {
+    	tablecount = Integer.valueOf(p.getProperty("maxtables", "1"));
+    	listOfTables = new String[tablecount];
+    	for (int i = 0; i < tablecount; i++) 
+			listOfTables[i] = table + String.valueOf(starttableid+i);    	
+    	tablechooser = new UniformIntegerGenerator(0, tablecount - 1);
+    } else {
+    	listOfTables = new String[1];
+    	listOfTables[0] = table;
+    }
+    
     fieldcount =
         Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     fieldnames = new ArrayList<String>();
@@ -511,6 +548,28 @@ public class CoreWorkload extends Workload {
         INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
   }
 
+  	/*
+  	@Override
+	public Object initThread(Properties p, int mythreadid, int threadcount) throws WorkloadException {
+  		//TODO: Abandon this approach? For Insert, each thread will inject for ALL available tables
+  		//Default assignment
+	    assignedTable = table;
+
+	    //If multiTable
+	    if (lastAccessedTableIdx != null) {
+	      int tableNumber;
+	      if (tablecount > 0)
+	        tableNumber = lastAccessedTableIdx.getAndIncrement() % tablecount + starttableid;
+	      else
+	        tableNumber = lastAccessedTableIdx.getAndIncrement() + starttableid;
+	      assignedTable = table + tableNumber;
+	      this.tgtTableMap.put(Integer.valueOf(tableNumber), assignedTable);
+	      System.out.println("Thread#" + mythreadid + " will be working on " + assignedTable);
+	    } 
+
+	    return assignedTable;
+	}
+	*/
   public String buildKeyName(long keynum) {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
@@ -586,33 +645,34 @@ public class CoreWorkload extends Workload {
     String dbkey = buildKeyName(keynum);
     HashMap<String, ByteIterator> values = buildValues(dbkey);
 
-    Status status;
+    Status status = Status.OK;
     int numOfRetries = 0;
-    do {
-      status = db.insert(table, dbkey, values);
-      if (status == Status.OK) {
-        break;
-      }
-      // Retry if configured. Without retrying, the load process will fail
-      // even if one single insertion fails. User can optionally configure
-      // an insertion retry limit (default is 0) to enable retry.
-      if (++numOfRetries <= insertionRetryLimit) {
-        System.err.println("Retrying insertion, retry count: " + numOfRetries);
-        try {
-          // Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
-          int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
-          Thread.sleep(sleepTime);
-        } catch (InterruptedException e) {
-          break;
-        }
-
-      } else {
-        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
-            "Insertion Retry Limit: " + insertionRetryLimit);
-        break;
-
-      }
-    } while (true);
+    //Loop between available tables to insert the same key  
+    for (String tgtTableToInsertIn : listOfTables) {
+    	do {
+    		status = db.insert(tgtTableToInsertIn, dbkey, values);
+    		if (status == Status.OK) {
+    			break;
+    		}
+    		// Retry if configured. Without retrying, the load process will fail
+    		// even if one single insertion fails. User can optionally configure
+    		// an insertion retry limit (default is 0) to enable retry.
+    		if (++numOfRetries <= insertionRetryLimit) {
+    			System.err.println("Retrying insertion, retry count: " + numOfRetries);
+    			try {
+    				// Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
+    				int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
+    				Thread.sleep(sleepTime);
+    			} catch (InterruptedException e) {
+    				break;
+    			}
+    		} else {
+    			System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
+    					"Insertion Retry Limit: " + insertionRetryLimit);
+    			break;
+    		}
+    	} while (true);
+    } //End of inserting values into dbkey for ALL tables
 
     return (status == Status.OK);
   }
@@ -686,10 +746,18 @@ public class CoreWorkload extends Workload {
     return keynum;
   }
 
+  private String getNextTable() {
+	  if (listOfTables.length > 1)
+		  return listOfTables[tablechooser.nextValue().intValue()];
+	  else //Dont waste time tossing for single table
+		  return listOfTables[0];
+  }
+
   public void doTransactionRead(DB db) {
     // choose a random key
     long keynum = nextKeynum();
 
+    assignedTable = getNextTable();
     String keyname = buildKeyName(keynum);
 
     HashSet<String> fields = null;
@@ -706,7 +774,7 @@ public class CoreWorkload extends Workload {
     }
 
     HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    db.read(table, keyname, fields, cells);
+    db.read(assignedTable, keyname, fields, cells);
 
     if (dataintegrity) {
       verifyRow(keyname, cells);
@@ -716,7 +784,7 @@ public class CoreWorkload extends Workload {
   public void doTransactionReadModifyWrite(DB db) {
     // choose a random key
     long keynum = nextKeynum();
-
+    assignedTable = getNextTable();
     String keyname = buildKeyName(keynum);
 
     HashSet<String> fields = null;
@@ -746,9 +814,9 @@ public class CoreWorkload extends Workload {
 
     long ist = _measurements.getIntendedtartTimeNs();
     long st = System.nanoTime();
-    db.read(table, keyname, fields, cells);
+    db.read(assignedTable, keyname, fields, cells);
 
-    db.update(table, keyname, values);
+    db.update(assignedTable, keyname, values);
 
     long en = System.nanoTime();
 
@@ -763,7 +831,7 @@ public class CoreWorkload extends Workload {
   public void doTransactionScan(DB db) {
     // choose a random key
     long keynum = nextKeynum();
-
+    assignedTable = getNextTable();
     String startkeyname = buildKeyName(keynum);
 
     // choose a random scan length
@@ -779,13 +847,13 @@ public class CoreWorkload extends Workload {
       fields.add(fieldname);
     }
 
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+    db.scan(assignedTable, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
   public void doTransactionUpdate(DB db) {
     // choose a random key
     long keynum = nextKeynum();
-
+    assignedTable = getNextTable();
     String keyname = buildKeyName(keynum);
 
     HashMap<String, ByteIterator> values;
@@ -798,20 +866,22 @@ public class CoreWorkload extends Workload {
       values = buildSingleValue(keyname);
     }
 
-    db.update(table, keyname, values);
+    db.update(assignedTable, keyname, values);
   }
 
   public void doTransactionInsert(DB db) {
     // choose the next key
     long keynum = transactioninsertkeysequence.nextValue();
+    //Loop between available tables to insert the same key  
+    for (String tgtTableToInsertIn : listOfTables) {
+    	try {
+    		String dbkey = buildKeyName(keynum);
 
-    try {
-      String dbkey = buildKeyName(keynum);
-
-      HashMap<String, ByteIterator> values = buildValues(dbkey);
-      db.insert(table, dbkey, values);
-    } finally {
-      transactioninsertkeysequence.acknowledge(keynum);
+    		HashMap<String, ByteIterator> values = buildValues(dbkey);
+    		db.insert(tgtTableToInsertIn, dbkey, values);
+    	} finally {
+    		transactioninsertkeysequence.acknowledge(keynum);
+    	}
     }
   }
 }
